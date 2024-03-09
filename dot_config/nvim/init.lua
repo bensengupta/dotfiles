@@ -556,19 +556,6 @@ require("lazy").setup({
 					accept = false, -- disable built-in keymapping
 				},
 			})
-
-			-- hide copilot suggestions when cmp menu is open
-			-- to prevent odd behavior/garbled up suggestions
-			local cmp_status_ok, cmp = pcall(require, "cmp")
-			if cmp_status_ok then
-				cmp.event:on("menu_opened", function()
-					vim.b.copilot_suggestion_hidden = true
-				end)
-
-				cmp.event:on("menu_closed", function()
-					vim.b.copilot_suggestion_hidden = false
-				end)
-			end
 		end,
 	},
 
@@ -767,14 +754,13 @@ require("lazy").setup({
 	--  Uncomment any of the lines below to enable them (you will need to restart nvim).
 	--
 	-- require 'kickstart.plugins.debug',
-	require("kickstart.plugins.indent_line"),
 
-	-- NOTE: The import below can automatically add your own plugins, configuration, etc from `lua/custom/plugins/*.lua`
-	--    This is the easiest way to modularize your config.
-	--
-	--  Uncomment the following line and add your plugins to `lua/custom/plugins/*.lua` to get going.
-	--    For additional information see: :help lazy.nvim-lazy.nvim-structuring-your-plugins
-	-- { import = 'custom.plugins' },
+  -- NOTE: The import below can automatically add your own plugins, configuration, etc from `lua/custom/plugins/*.lua`
+  --    This is the easiest way to modularize your config.
+  --
+  --  Uncomment the following line and add your plugins to `lua/custom/plugins/*.lua` to get going.
+  --    For additional information see: :help lazy.nvim-lazy.nvim-structuring-your-plugins
+  -- { import = 'custom.plugins' },
 })
 
 -- The line beneath this is called `modeline`. See `:help modeline`
