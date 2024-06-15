@@ -9,9 +9,11 @@ echo "Installing dotfiles..."
 mkdir -p ~/.config
 mkdir -p ~/.local/bin
 
-# ln -s <destination> <symlink-to-create>
-ln -sf $(pwd)/config/nvim ~/.config/nvim
-ln -sf $(pwd)/config/tmux ~/.config/tmux
-ln -sf $(pwd)/bin/tmux-sessionizer ~/.local/bin/tmux-sessionizer
+#        FROM ->  TO
+# ln -s <file> <symlink>
+
+ln -s $(pwd)/config/nvim ~/.config/nvim
+ln -s $(pwd)/config/tmux ~/.config/tmux
+ln -s $(pwd)/bin/tmux-sessionizer ~/.local/bin/tmux-sessionizer
 
 popd
