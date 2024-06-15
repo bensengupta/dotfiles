@@ -11,6 +11,7 @@ mkdir -p ~/.local/bin
 
 #        FROM ->  TO
 # ln -s <file> <symlink>
+# use -sf to force
 
 ln -s $(pwd)/config/nvim ~/.config/nvim
 ln -s $(pwd)/config/tmux ~/.config/tmux
