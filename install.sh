@@ -16,5 +16,7 @@ mkdir -p ~/.local/bin
 ln -s $(pwd)/config/nvim ~/.config/nvim
 ln -s $(pwd)/config/tmux ~/.config/tmux
 ln -s $(pwd)/bin/tmux-sessionizer ~/.local/bin/tmux-sessionizer
+ln -s $(pwd)/.gitconfig ~/.gitconfig
+ln -s $(pwd)/.gitconfig-wave ~/.gitconfig-wave
 
 popd

@@ -1,0 +1,9 @@
+[user]
+	email = benjaminsengupta@gmail.com
+	name = Benjamin Sengupta
+[core]
+	sshCommand = ssh -i ~/.ssh/id_bensengupta
+[push]
+	autoSetupRemote = true
+[includeIf "gitdir:~/wave/"]
+	path = .gitconfig-wave
