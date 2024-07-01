@@ -127,6 +127,13 @@ vim.keymap.set('n', '<leader>q', vim.diagnostic.setloclist, { desc = 'Open diagn
 -- Replace current word under cursor
 vim.keymap.set('n', '<leader>sb', [[:%s/\<<C-r><C-w>\>/<C-r><C-w>/gI<Left><Left><Left>]], { desc = '[S]ubstitute Word' })
 
+function insertFullPath()
+  local filepath = vim.fn.expand '%'
+  vim.fn.setreg('+', filepath)
+end
+
+vim.keymap.set('n', '<leader>fp', insertFullPath, { desc = 'Copy [f]ile [p]ath to clipboard' })
+
 -- [[ Basic Autocommands ]]
 --  See :help lua-guide-autocommands
 
@@ -747,7 +754,9 @@ require('lazy').setup {
           {
             'rafamadriz/friendly-snippets',
             config = function()
-              require('luasnip.loaders.from_vscode').lazy_load()
+              require('luasnip.loaders.from_vscode').lazy_load {
+                exclude = { 'javascript', 'javascriptreact', 'typescript', 'typescriptreact' },
+              }
             end,
           },
         },
@@ -757,6 +766,9 @@ require('lazy').setup {
       'hrsh7th/cmp-nvim-lsp',
       'hrsh7th/cmp-path',
       'hrsh7th/cmp-nvim-lsp-signature-help',
+
+      -- Icons for completion items
+      'onsails/lspkind.nvim',
     },
     config = function()
       -- See `:help cmp`
@@ -771,6 +783,15 @@ require('lazy').setup {
           end,
         },
         completion = { completeopt = 'menu,menuone,noinsert' },
+
+        formatting = {
+          fields = { 'abbr', 'kind', 'menu' },
+          format = require('lspkind').cmp_format {
+            mode = 'symbol', -- show only symbol annotations
+            maxwidth = 50, -- prevent the popup from showing more than provided characters
+            ellipsis_char = '...', -- when popup menu exceed maxwidth, the truncated part would show ellipsis_char instead
+          },
+        },
 
         -- For an understanding of why these mappings were
         -- chosen, you will need to read `:help ins-completion`
