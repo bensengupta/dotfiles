@@ -11,5 +11,5 @@ stow . -t $HOME
 Uninstall
 
 ```bash
-stow --delete -t $HOME
+stow --delete . -t $HOME
 ```
