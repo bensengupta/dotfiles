@@ -5,11 +5,11 @@ Dotfiles, managed with [GNU Stow](https://www.gnu.org/software/stow/).
 Install
 
 ```bash
-stow .
+stow . -t $HOME
 ```
 
 Uninstall
 
 ```bash
-stow --delete
+stow --delete -t $HOME
 ```
