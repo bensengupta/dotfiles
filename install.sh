@@ -18,5 +18,6 @@ ln -s $(pwd)/config/tmux ~/.config/tmux
 ln -s $(pwd)/bin/tmux-sessionizer ~/.local/bin/tmux-sessionizer
 ln -s $(pwd)/.gitconfig ~/.gitconfig
 ln -s $(pwd)/.gitconfig-wave ~/.gitconfig-wave
+ln -s $(pwd)/.gitconfig-school ~/.gitconfig-school
 
 popd

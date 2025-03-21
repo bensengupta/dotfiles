@@ -3,7 +3,7 @@
 # Ripped straight from ThePrimeagen's dotfiles
 # https://github.com/ThePrimeagen/.dotfiles/blob/602019e902634188ab06ea31251c01c1a43d1621/bin/.local/scripts/tmux-sessionizer
 
-dirs="${TMUX_SESSIONIZER_DIRS:-"$HOME/wave/src $HOME/personal"}"
+dirs="${TMUX_SESSIONIZER_DIRS:-"$HOME/wave/src $HOME/personal $HOME/school-repos"}"
 
 if [[ $# -eq 1 ]]; then
     selected=$1

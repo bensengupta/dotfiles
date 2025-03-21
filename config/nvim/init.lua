@@ -1,7 +1,5 @@
 --[[
-  <leader>fe - Toggle [F]ile [E]xplorer
   <leader>gs - Open [G]it [S]tatus
-  <leader>fr - [F]ind and [R]eplace
 
   For find and replace:
   - Search via grep
@@ -85,6 +83,7 @@ vim.filetype.add {
     typ = 'typst',
     templ = 'templ',
     mdx = 'mdx',
+    avsc = 'json',
   },
 }
 
@@ -119,8 +118,14 @@ vim.keymap.set('n', 'Q', '<nop>', { desc = 'Disable Ex mode' })
 vim.keymap.set('n', '<C-f>', '<cmd>silent !tmux neww tmux-sessionizer<CR>', { desc = 'Open project finder' })
 
 -- Diagnostic keymaps
-vim.keymap.set('n', '[d', vim.diagnostic.goto_prev, { desc = 'Go to previous [D]iagnostic message' })
-vim.keymap.set('n', ']d', vim.diagnostic.goto_next, { desc = 'Go to next [D]iagnostic message' })
+function goto_prev_diagnostic()
+  vim.diagnostic.goto_prev { severity = { min = vim.diagnostic.severity.INFO } }
+end
+function goto_next_diagnostic()
+  vim.diagnostic.goto_next { severity = { min = vim.diagnostic.severity.INFO } }
+end
+vim.keymap.set('n', '[d', goto_prev_diagnostic, { desc = 'Go to previous [D]iagnostic message' })
+vim.keymap.set('n', ']d', goto_next_diagnostic, { desc = 'Go to next [D]iagnostic message' })
 vim.keymap.set('n', '<leader>e', vim.diagnostic.open_float, { desc = 'Show diagnostic [E]rror messages' })
 vim.keymap.set('n', '<leader>q', vim.diagnostic.setloclist, { desc = 'Open diagnostic [Q]uickfix list' })
 
@@ -157,9 +162,6 @@ if not vim.loop.fs_stat(lazypath) then
 end ---@diagnostic disable-next-line: undefined-field
 vim.opt.rtp:prepend(lazypath)
 
--- Remove the deprecated commands from neo-tree v1.x
-vim.cmd [[ let g:neo_tree_remove_legacy_commands = 1 ]]
-
 -- [[ Configure and install plugins ]]
 --
 --  To check the current status of your plugins, run
@@ -172,46 +174,30 @@ vim.cmd [[ let g:neo_tree_remove_legacy_commands = 1 ]]
 --
 require('lazy').setup {
   'tpope/vim-sleuth', -- Detect tabstop and shiftwidth automatically
+
+  {
+    'm4xshen/hardtime.nvim',
+    dependencies = { 'MunifTanjim/nui.nvim' },
+    opts = {
+      disabled_keys = {
+        ['<Up>'] = {},
+        ['<Down>'] = {},
+        ['<Left>'] = {},
+        ['<Right>'] = {},
+      },
+      restricted_keys = {
+        ['<Up>'] = { 'n', 'x' },
+        ['<Down>'] = { 'n', 'x' },
+        ['<Left>'] = { 'n', 'x' },
+        ['<Right>'] = { 'n', 'x' },
+      },
+    },
+  },
+
   {
     'tpope/vim-fugitive',
     config = function()
       vim.keymap.set('n', '<leader>gs', '<cmd>Git<CR>', { desc = 'Open [G]it [S]tatus' })
-    end,
-  },
-
-  {
-    'nvim-neo-tree/neo-tree.nvim',
-    branch = '*',
-    cmd = 'Neotree',
-    dependencies = {
-      'nvim-lua/plenary.nvim',
-      'nvim-tree/nvim-web-devicons', -- not strictly required, but recommended
-      'MunifTanjim/nui.nvim',
-      -- "3rd/image.nvim", -- Optional image support in preview window: See `# Preview Mode` for more information
-    },
-    keys = {
-      {
-        '<leader>fe',
-        function()
-          require('neo-tree.command').execute { toggle = true, position = 'current', reveal = true }
-        end,
-        desc = 'Toggle [F]ile [E]xplorer',
-      },
-    },
-    config = function()
-      require('neo-tree').setup {
-        sources = { 'filesystem', 'git_status' },
-        window = {
-          mappings = {
-            ['<space>'] = 'none',
-            ['/'] = 'none',
-          },
-        },
-        filesystem = {
-          follow_current_file = { enabled = true },
-          use_libuv_file_watcher = true,
-        },
-      }
     end,
   },
 
@@ -244,24 +230,29 @@ require('lazy').setup {
       local harpoon = require 'harpoon'
       harpoon:setup()
 
-      vim.keymap.set('n', '<leader>hm', function()
-        harpoon:list():add()
-      end, { desc = 'Add [H]arpoon [M]ark' })
+      vim.keymap.set('n', '<leader>A', function()
+        harpoon:list():prepend()
+      end, { desc = '[A]dd Harpoon Mark (prepend)' })
 
-      vim.keymap.set('n', '<leader>hl', function()
+      vim.keymap.set('n', '<leader>a', function()
+        harpoon:list():add()
+      end, { desc = '[A]dd Harpoon Mark (append)' })
+
+      vim.keymap.set('n', '<C-h>', function()
         harpoon.ui:toggle_quick_menu(harpoon:list())
       end, { desc = 'Toggle [H]arpoon [L]ist' })
 
-      vim.keymap.set('n', '<C-j>', function()
+      vim.keymap.set('n', '<C-s>', function()
         harpoon:list():select(1)
       end, { desc = 'Harpoon Mark [1]' })
-      vim.keymap.set('n', '<C-k>', function()
+      vim.keymap.set('n', '<C-t>', function()
         harpoon:list():select(2)
       end, { desc = 'Harpoon Mark [2]' })
-      vim.keymap.set('n', '<C-l>', function()
+      vim.keymap.set('n', '<C-n>', function()
         harpoon:list():select(3)
       end, { desc = 'Harpoon Mark [3]' })
-      vim.keymap.set('n', '<C-;>;', function()
+      -- semicolon doesn't work :(
+      vim.keymap.set('n', '<C-e>', function()
         harpoon:list():select(4)
       end, { desc = 'Harpoon Mark [4]' })
     end,
@@ -323,18 +314,18 @@ require('lazy').setup {
   { -- Useful plugin to show you pending keybinds.
     'folke/which-key.nvim',
     event = 'VeryLazy', -- Sets the loading event to 'VeryLazy'
-    config = function() -- This is the function that runs, AFTER loading
-      require('which-key').setup()
-
-      -- Document existing key chains
-      require('which-key').register {
-        ['<leader>c'] = { name = '[C]ode', _ = 'which_key_ignore' },
-        ['<leader>d'] = { name = '[D]ocument', _ = 'which_key_ignore' },
-        ['<leader>r'] = { name = '[R]ename', _ = 'which_key_ignore' },
-        ['<leader>s'] = { name = '[S]earch', _ = 'which_key_ignore' },
-        ['<leader>w'] = { name = '[W]orkspace', _ = 'which_key_ignore' },
-      }
-    end,
+    opts = {
+      spec = {
+        { '<leader>c', group = '[C]ode' },
+        { '<leader>d', group = '[D]ocument' },
+        { '<leader>r', group = '[R]ename' },
+        { '<leader>s', group = '[S]earch' },
+        { '<leader>w', group = '[W]workspace' },
+      },
+      icons = {
+        mappings = false, -- Hide icons
+      },
+    },
   },
 
   {
@@ -378,7 +369,7 @@ require('lazy').setup {
       -- Useful for getting pretty icons, but requires special font.
       --  If you already have a Nerd Font, or terminal set up with fallback fonts
       --  you can enable this
-      -- { 'nvim-tree/nvim-web-devicons' }
+      { 'nvim-tree/nvim-web-devicons' },
     },
     config = function()
       -- Telescope is a fuzzy finder that comes with a lot of different things that
@@ -406,11 +397,24 @@ require('lazy').setup {
         -- You can put your default mappings / updates / etc. in here
         --  All the info you're looking for is in `:help telescope.setup()`
         --
-        -- defaults = {
-        --   mappings = {
-        --     i = { ['<c-enter>'] = 'to_fuzzy_refine' },
-        --   },
-        -- },
+        defaults = {
+          vimgrep_arguments = {
+            'rg',
+            '--color=never',
+            '--no-heading',
+            '--with-filename',
+            '--line-number',
+            '--column',
+            '--smart-case',
+            '--hidden',
+          },
+          file_ignore_patterns = {
+            '.git',
+            '.yarn/releases',
+            '.yarn/plugins',
+          },
+          dynamic_preview_title = true,
+        },
         -- pickers = {}
         extensions = {
           ['ui-select'] = {
@@ -425,12 +429,25 @@ require('lazy').setup {
 
       -- See `:help telescope.builtin`
       local builtin = require 'telescope.builtin'
+
+      local find_files = function()
+        builtin.find_files {
+          hidden = true,
+        }
+      end
+
+      local live_grep = function()
+        builtin.live_grep {
+          disable_coordinates = true,
+        }
+      end
+
       vim.keymap.set('n', '<leader>sh', builtin.help_tags, { desc = '[S]earch [H]elp' })
       vim.keymap.set('n', '<leader>sk', builtin.keymaps, { desc = '[S]earch [K]eymaps' })
-      vim.keymap.set('n', '<leader>sf', builtin.git_files, { desc = '[S]earch [F]iles' })
+      vim.keymap.set('n', '<leader>sf', find_files, { desc = '[S]earch [F]iles' })
       vim.keymap.set('n', '<leader>ss', builtin.builtin, { desc = '[S]earch [S]elect Telescope' })
       vim.keymap.set('n', '<leader>sw', builtin.grep_string, { desc = '[S]earch current [W]ord' })
-      vim.keymap.set('n', '<leader>sg', builtin.live_grep, { desc = '[S]earch by [G]rep' })
+      vim.keymap.set('n', '<leader>sg', live_grep, { desc = '[S]earch by [G]rep' })
       vim.keymap.set('n', '<leader>sd', builtin.diagnostics, { desc = '[S]earch [D]iagnostics' })
       vim.keymap.set('n', '<leader>sr', builtin.resume, { desc = '[S]earch [R]esume' })
       vim.keymap.set('n', '<leader>s.', builtin.oldfiles, { desc = '[S]earch Recent Files ("." for repeat)' })
@@ -575,6 +592,8 @@ require('lazy').setup {
       local capabilities = vim.lsp.protocol.make_client_capabilities()
       capabilities = vim.tbl_deep_extend('force', capabilities, require('cmp_nvim_lsp').default_capabilities())
 
+      local nvim_lsp = require 'lspconfig'
+
       -- Enable the following language servers
       --  Feel free to add/remove any LSPs that you want here. They will automatically be installed.
       --
@@ -585,28 +604,55 @@ require('lazy').setup {
       --  - settings (table): Override the default settings passed when initializing the server.
       --        For example, to see the options for `lua_ls`, you could go to: https://luals.github.io/wiki/settings/
       local servers = {
-        clangd = {},
-        pyright = {},
+        clangd = {
+          filetypes = { 'c', 'cpp', 'objc', 'objcpp', 'cuda' }, -- excluded "proto"
+        },
         rust_analyzer = {},
         -- ... etc. See `:help lspconfig-all` for a list of all the pre-configured LSPs
         --
         -- Some languages (like typescript) have entire language plugins that can be useful:
         --    https://github.com/pmizio/typescript-tools.nvim
         --
-        -- But for many setups, the LSP (`tsserver`) will work just fine
-        tsserver = {
-          -- init_options = {
-          --   maxTsServerMemory = 4096,
-          --   tsserver = {
-          --     logDirectory = '/Users/bsengupta/wave/src/next-wave',
-          --     logVerbosity = 'verbose',
-          --   },
-          -- },
+        -- But for many setups, the LSP (`ts_ls`) will work just fine
+        ts_ls = {
+          root_dir = nvim_lsp.util.root_pattern 'package.json',
+          single_file_support = false,
         },
+        denols = {
+          root_dir = nvim_lsp.util.root_pattern('deno.json', 'deno.jsonc'),
+        },
+        basedpyright = {
+          settings = {
+            basedpyright = {
+              analysis = {
+                typeCheckingMode = 'basic',
+              },
+            },
+          },
+        },
+        -- pylsp = {
+        --   settings = {
+        --     pylsp = {
+        --       plugins = {
+        --         pycodestyle = {
+        --           ignore = { 'E501' },
+        --           maxLineLength = 100,
+        --         },
+        --       },
+        --     },
+        --   },
+        -- },
         eslint = {},
         gopls = {},
         templ = {},
         html = {},
+        -- TODO: replace with tinymist
+        -- typst_lsp = {
+        --   settings = {
+        --     exportPdf = 'onSave',
+        --   },
+        -- },
+        jdtls = {},
 
         lua_ls = {
           -- cmd = {...},
@@ -658,9 +704,9 @@ require('lazy').setup {
             local server = servers[server_name] or {}
             -- This handles overriding only values explicitly passed
             -- by the server configuration above. Useful when disabling
-            -- certain features of an LSP (for example, turning off formatting for tsserver)
+            -- certain features of an LSP (for example, turning off formatting for ts_ls)
             server.capabilities = vim.tbl_deep_extend('force', {}, capabilities, server.capabilities or {})
-            require('lspconfig')[server_name].setup(server)
+            nvim_lsp[server_name].setup(server)
           end,
         },
       }
@@ -671,41 +717,26 @@ require('lazy').setup {
     'stevearc/conform.nvim',
     opts = {
       notify_on_error = false,
-      format_on_save = {
-        timeout_ms = 500,
-        lsp_fallback = true,
-      },
-      -- formatters = {
-      --   prettier = {
-      --     command = function(self, bufnr)
-      --       local util = require 'conform.util'
-      --       local fs = require 'conform.fs'
-      --
-      --       local cmd = util.find_executable({ '.yarn/sdks/prettier/bin/prettier.cjs' }, '')(self, bufnr)
-      --       if cmd ~= '' then
-      --         return cmd
-      --       end
-      --       -- return type of util.from_node_modules is fun(self: conform.FormatterConfig, ctx: conform.Context): string
-      --       ---@diagnostic disable-next-line
-      --       return util.from_node_modules(fs.is_windows and 'prettier.cmd' or 'prettier')(self, bufnr)
-      --     end,
-      --   },
-      -- },
+      format_on_save = { timeout_ms = 1000 },
       formatters_by_ft = {
-        lua = { 'stylua' },
-        -- Conform can also run multiple formatters sequentially
-        python = { 'isort', 'black' },
+        lua = { 'stylua', lsp_format = 'fallback' },
+        python = { 'isort', 'black', lsp_format = 'fallback' },
+        java = { 'google-java-format', lsp_format = 'fallback' },
+        typst = { 'typstyle', lsp_format = 'fallback' },
+        go = { lsp_format = 'fallback' },
 
         -- Prettier
-        css = { { 'prettierd', 'prettier' } },
-        -- html = { { 'prettierd', 'prettier' } },
-        json = { { 'prettierd', 'prettier' } },
-        graphql = { { 'prettierd', 'prettier' } },
-        jsonc = { { 'prettierd', 'prettier' } },
-        javascript = { { 'prettierd', 'prettier' } },
-        javascriptreact = { { 'prettierd', 'prettier' } },
-        typescript = { { 'prettierd', 'prettier' } },
-        typescriptreact = { { 'prettierd', 'prettier' } },
+        css = { 'prettierd', 'prettier', stop_after_first = true, lsp_format = 'fallback' },
+        html = { 'prettierd', 'prettier', stop_after_first = true, lsp_format = 'fallback' },
+        yaml = { 'prettierd', 'prettier', stop_after_first = true, lsp_format = 'fallback' },
+        markdown = { 'prettierd', 'prettier', stop_after_first = true, lsp_format = 'fallback' },
+        graphql = { 'prettierd', 'prettier', stop_after_first = true, lsp_format = 'fallback' },
+        json = { 'prettierd', 'prettier', stop_after_first = true, lsp_format = 'fallback' },
+        jsonc = { 'prettierd', 'prettier', stop_after_first = true, lsp_format = 'fallback' },
+        javascript = { 'prettierd', 'prettier', stop_after_first = true, lsp_format = 'fallback' },
+        javascriptreact = { 'prettierd', 'prettier', stop_after_first = true, lsp_format = 'fallback' },
+        typescript = { 'prettierd', 'prettier', stop_after_first = true, lsp_format = 'fallback' },
+        typescriptreact = { 'prettierd', 'prettier', stop_after_first = true, lsp_format = 'fallback' },
       },
     },
   },
