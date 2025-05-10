@@ -118,10 +118,10 @@ vim.keymap.set('n', 'Q', '<nop>', { desc = 'Disable Ex mode' })
 vim.keymap.set('n', '<C-f>', '<cmd>silent !tmux neww tmux-sessionizer<CR>', { desc = 'Open project finder' })
 
 -- Diagnostic keymaps
-function goto_prev_diagnostic()
+local function goto_prev_diagnostic()
   vim.diagnostic.goto_prev { severity = { min = vim.diagnostic.severity.INFO } }
 end
-function goto_next_diagnostic()
+local function goto_next_diagnostic()
   vim.diagnostic.goto_next { severity = { min = vim.diagnostic.severity.INFO } }
 end
 vim.keymap.set('n', '[d', goto_prev_diagnostic, { desc = 'Go to previous [D]iagnostic message' })
@@ -132,7 +132,7 @@ vim.keymap.set('n', '<leader>q', vim.diagnostic.setloclist, { desc = 'Open diagn
 -- Replace current word under cursor
 vim.keymap.set('n', '<leader>sb', [[:%s/\<<C-r><C-w>\>/<C-r><C-w>/gI<Left><Left><Left>]], { desc = '[S]ubstitute Word' })
 
-function insertFullPath()
+local function insertFullPath()
   local filepath = vim.fn.expand '%'
   vim.fn.setreg('+', filepath)
 end
@@ -593,34 +593,19 @@ require('lazy').setup {
       local capabilities = vim.lsp.protocol.make_client_capabilities()
       capabilities = vim.tbl_deep_extend('force', capabilities, require('cmp_nvim_lsp').default_capabilities())
 
-      local nvim_lsp = require 'lspconfig'
-
-      -- Enable the following language servers
-      --  Feel free to add/remove any LSPs that you want here. They will automatically be installed.
-      --
-      --  Add any additional override configuration in the following tables. Available keys are:
-      --  - cmd (table): Override the default command used to start the server
-      --  - filetypes (table): Override the default list of associated filetypes for the server
-      --  - capabilities (table): Override fields in capabilities. Can be used to disable certain LSP features.
-      --  - settings (table): Override the default settings passed when initializing the server.
-      --        For example, to see the options for `lua_ls`, you could go to: https://luals.github.io/wiki/settings/
       local servers = {
         clangd = {
           filetypes = { 'c', 'cpp', 'objc', 'objcpp', 'cuda' }, -- excluded "proto"
         },
         rust_analyzer = {},
-        -- ... etc. See `:help lspconfig-all` for a list of all the pre-configured LSPs
-        --
-        -- Some languages (like typescript) have entire language plugins that can be useful:
-        --    https://github.com/pmizio/typescript-tools.nvim
-        --
-        -- But for many setups, the LSP (`ts_ls`) will work just fine
-        ts_ls = {
-          root_dir = nvim_lsp.util.root_pattern 'package.json',
-          single_file_support = false,
-        },
+        ts_ls = {},
         denols = {
-          root_dir = nvim_lsp.util.root_pattern('deno.json', 'deno.jsonc'),
+          root_dir = function(bufnr, done)
+            local denojson = vim.fs.root(bufnr, { 'deno.json', 'deno.jsonc' })
+            if denojson then
+              return done(denojson)
+            end
+          end,
         },
         basedpyright = {
           settings = {
@@ -647,31 +632,16 @@ require('lazy').setup {
         gopls = {},
         templ = {},
         html = {},
-        -- TODO: replace with tinymist
-        -- typst_lsp = {
-        --   settings = {
-        --     exportPdf = 'onSave',
-        --   },
-        -- },
         jdtls = {},
 
         lua_ls = {
-          -- cmd = {...},
-          -- filetypes { ...},
-          -- capabilities = {},
           settings = {
             Lua = {
-              runtime = { version = 'LuaJIT' },
+              checkThirdParty = false,
               workspace = {
-                checkThirdParty = false,
-                -- Tells lua_ls where to find all the Lua files that you have loaded
-                -- for your neovim configuration.
                 library = {
-                  '${3rd}/luv/library',
-                  unpack(vim.api.nvim_get_runtime_file('', true)),
+                  vim.env.VIMRUNTIME,
                 },
-                -- If lua_ls is really slow on your computer, you can try this instead:
-                -- library = { vim.env.VIMRUNTIME },
               },
               completion = {
                 callSnippet = 'Replace',
@@ -682,6 +652,11 @@ require('lazy').setup {
           },
         },
       }
+
+      for server_name, server in pairs(servers) do
+        server.capabilities = vim.tbl_deep_extend('force', {}, capabilities, server.capabilities or {})
+        vim.lsp.config(server_name, server)
+      end
 
       -- Ensure the servers and tools above are installed
       --  To check the current status of installed tools and/or manually install
@@ -698,26 +673,13 @@ require('lazy').setup {
         'stylua', -- Used to format lua code
       })
       require('mason-tool-installer').setup { ensure_installed = ensure_installed }
-
-      require('mason-lspconfig').setup {
-        handlers = {
-          function(server_name)
-            local server = servers[server_name] or {}
-            -- This handles overriding only values explicitly passed
-            -- by the server configuration above. Useful when disabling
-            -- certain features of an LSP (for example, turning off formatting for ts_ls)
-            server.capabilities = vim.tbl_deep_extend('force', {}, capabilities, server.capabilities or {})
-            nvim_lsp[server_name].setup(server)
-          end,
-        },
-      }
+      require('mason-lspconfig').setup()
     end,
   },
 
   { -- Autoformat
     'stevearc/conform.nvim',
     config = function()
-      -- function for javascript formatter
       local js_formatter = function(bufnr)
         if require('conform').get_formatter_info('prettier', bufnr).available then
           return { 'prettierd', 'prettier', stop_after_first = true }
@@ -986,24 +948,6 @@ require('lazy').setup {
   },
 
   'nvim-treesitter/playground',
-
-  -- The following two comments only work if you have downloaded the kickstart repo, not just copy pasted the
-  -- init.lua. If you want these files, they are in the repository, so you can just download them and
-  -- put them in the right spots if you want.
-
-  -- NOTE: Next step on your Neovim journey: Add/Configure additional plugins for kickstart
-  --
-  --  Here are some example plugins that I've included in the kickstart repository.
-  --  Uncomment any of the lines below to enable them (you will need to restart nvim).
-  --
-  -- require 'kickstart.plugins.debug',
-
-  -- NOTE: The import below can automatically add your own plugins, configuration, etc from `lua/custom/plugins/*.lua`
-  --    This is the easiest way to modularize your config.
-  --
-  --  Uncomment the following line and add your plugins to `lua/custom/plugins/*.lua` to get going.
-  --    For additional information see: :help lazy.nvim-lazy.nvim-structuring-your-plugins
-  -- { import = 'custom.plugins' },
 }
 
 -- The line beneath this is called `modeline`. See `:help modeline`
