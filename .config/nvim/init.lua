@@ -175,24 +175,25 @@ vim.opt.rtp:prepend(lazypath)
 require('lazy').setup {
   'tpope/vim-sleuth', -- Detect tabstop and shiftwidth automatically
 
-  {
-    'm4xshen/hardtime.nvim',
-    dependencies = { 'MunifTanjim/nui.nvim' },
-    opts = {
-      disabled_keys = {
-        ['<Up>'] = {},
-        ['<Down>'] = {},
-        ['<Left>'] = {},
-        ['<Right>'] = {},
-      },
-      restricted_keys = {
-        ['<Up>'] = { 'n', 'x' },
-        ['<Down>'] = { 'n', 'x' },
-        ['<Left>'] = { 'n', 'x' },
-        ['<Right>'] = { 'n', 'x' },
-      },
-    },
-  },
+  -- {
+  --   'm4xshen/hardtime.nvim',
+  --   dependencies = { 'MunifTanjim/nui.nvim' },
+  --   opts = {
+  --     disabled_keys = {
+  --       ['<Up>'] = {},
+  --       ['<Down>'] = {},
+  --       ['<Left>'] = {},
+  --       ['<Right>'] = {},
+  --     },
+  --     restricted_keys = {
+  --       ['<Up>'] = { 'n', 'x' },
+  --       ['<Down>'] = { 'n', 'x' },
+  --       ['<Left>'] = { 'n', 'x' },
+  --       ['<Right>'] = { 'n', 'x' },
+  --     },
+  --   },
+  -- },
+  'tpope/vim-abolish',
 
   {
     'tpope/vim-fugitive',
@@ -715,30 +716,44 @@ require('lazy').setup {
 
   { -- Autoformat
     'stevearc/conform.nvim',
-    opts = {
-      notify_on_error = false,
-      format_on_save = { timeout_ms = 1000 },
-      formatters_by_ft = {
-        lua = { 'stylua', lsp_format = 'fallback' },
-        python = { 'isort', 'black', lsp_format = 'fallback' },
-        java = { 'google-java-format', lsp_format = 'fallback' },
-        typst = { 'typstyle', lsp_format = 'fallback' },
-        go = { lsp_format = 'fallback' },
+    config = function()
+      -- function for javascript formatter
+      local js_formatter = function(bufnr)
+        if require('conform').get_formatter_info('prettier', bufnr).available then
+          return { 'prettierd', 'prettier', stop_after_first = true }
+        elseif require('conform').get_formatter_info('biome', bufnr).available then
+          return { 'biome', 'biome-organize-imports' }
+        else
+          return { lsp_format = 'fallback' }
+        end
+      end
 
-        -- Prettier
-        css = { 'prettierd', 'prettier', stop_after_first = true, lsp_format = 'fallback' },
-        html = { 'prettierd', 'prettier', stop_after_first = true, lsp_format = 'fallback' },
-        yaml = { 'prettierd', 'prettier', stop_after_first = true, lsp_format = 'fallback' },
-        markdown = { 'prettierd', 'prettier', stop_after_first = true, lsp_format = 'fallback' },
-        graphql = { 'prettierd', 'prettier', stop_after_first = true, lsp_format = 'fallback' },
-        json = { 'prettierd', 'prettier', stop_after_first = true, lsp_format = 'fallback' },
-        jsonc = { 'prettierd', 'prettier', stop_after_first = true, lsp_format = 'fallback' },
-        javascript = { 'prettierd', 'prettier', stop_after_first = true, lsp_format = 'fallback' },
-        javascriptreact = { 'prettierd', 'prettier', stop_after_first = true, lsp_format = 'fallback' },
-        typescript = { 'prettierd', 'prettier', stop_after_first = true, lsp_format = 'fallback' },
-        typescriptreact = { 'prettierd', 'prettier', stop_after_first = true, lsp_format = 'fallback' },
-      },
-    },
+      require('conform').setup {
+        notify_on_error = false,
+        format_on_save = { timeout_ms = 1000 },
+        formatters_by_ft = {
+          lua = { 'stylua', lsp_format = 'fallback' },
+          python = { 'isort', 'black', lsp_format = 'fallback' },
+          java = { 'google-java-format', lsp_format = 'fallback' },
+          typst = { 'typstyle', lsp_format = 'fallback' },
+          go = { lsp_format = 'fallback' },
+          rust = { lsp_format = 'fallback' },
+
+          -- Prettier
+          css = { 'prettierd', 'prettier', 'biome', stop_after_first = true, lsp_format = 'fallback' },
+          html = { 'prettierd', 'prettier', stop_after_first = true, lsp_format = 'fallback' },
+          yaml = { 'prettierd', 'prettier', stop_after_first = true, lsp_format = 'fallback' },
+          markdown = { 'prettierd', 'prettier', stop_after_first = true, lsp_format = 'fallback' },
+          graphql = { 'prettierd', 'prettier', 'biome', stop_after_first = true, lsp_format = 'fallback' },
+          json = { 'prettierd', 'prettier', 'biome', stop_after_first = true, lsp_format = 'fallback' },
+          jsonc = { 'prettierd', 'prettier', 'biome', stop_after_first = true, lsp_format = 'fallback' },
+          javascript = js_formatter,
+          javascriptreact = js_formatter,
+          typescript = js_formatter,
+          typescriptreact = js_formatter,
+        },
+      }
+    end,
   },
 
   {
