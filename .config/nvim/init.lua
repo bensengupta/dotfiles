@@ -681,10 +681,10 @@ require('lazy').setup {
     'stevearc/conform.nvim',
     config = function()
       local js_formatter = function(bufnr)
-        if require('conform').get_formatter_info('prettier', bufnr).available then
-          return { 'prettierd', 'prettier', stop_after_first = true }
-        elseif require('conform').get_formatter_info('biome', bufnr).available then
+        if require('conform').get_formatter_info('biome', bufnr).available then
           return { 'biome', 'biome-organize-imports' }
+        elseif require('conform').get_formatter_info('prettier', bufnr).available then
+          return { 'prettierd', 'prettier', stop_after_first = true }
         else
           return { lsp_format = 'fallback' }
         end
@@ -701,14 +701,13 @@ require('lazy').setup {
           go = { lsp_format = 'fallback' },
           rust = { lsp_format = 'fallback' },
 
-          -- Prettier
-          css = { 'prettierd', 'prettier', 'biome', stop_after_first = true, lsp_format = 'fallback' },
+          css = js_formatter,
           html = { 'prettierd', 'prettier', stop_after_first = true, lsp_format = 'fallback' },
           yaml = { 'prettierd', 'prettier', stop_after_first = true, lsp_format = 'fallback' },
           markdown = { 'prettierd', 'prettier', stop_after_first = true, lsp_format = 'fallback' },
-          graphql = { 'prettierd', 'prettier', 'biome', stop_after_first = true, lsp_format = 'fallback' },
-          json = { 'prettierd', 'prettier', 'biome', stop_after_first = true, lsp_format = 'fallback' },
-          jsonc = { 'prettierd', 'prettier', 'biome', stop_after_first = true, lsp_format = 'fallback' },
+          graphql = js_formatter,
+          json = js_formatter,
+          jsonc = js_formatter,
           javascript = js_formatter,
           javascriptreact = js_formatter,
           typescript = js_formatter,
