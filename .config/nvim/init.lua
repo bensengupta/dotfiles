@@ -23,6 +23,9 @@ vim.opt.termguicolors = true
 -- Disable line wrapping
 vim.opt.wrap = false
 
+-- Views can only be fully collapsed with the global statusline
+vim.opt.laststatus = 3
+
 -- Disable swap file + enable undo file
 vim.opt.swapfile = false
 vim.opt.backup = false
@@ -694,6 +697,7 @@ require('lazy').setup {
         notify_on_error = false,
         format_on_save = { timeout_ms = 1000 },
         formatters_by_ft = {
+          c = { lsp_format = 'fallback' },
           lua = { 'stylua', lsp_format = 'fallback' },
           python = { 'isort', 'black', lsp_format = 'fallback' },
           java = { 'google-java-format', lsp_format = 'fallback' },
