@@ -156,6 +156,15 @@ vim.api.nvim_create_autocmd('TextYankPost', {
   end,
 })
 
+-- Fixes rest.nvim json formatting
+vim.api.nvim_create_autocmd('FileType', {
+  pattern = 'json',
+  callback = function(ev)
+    vim.bo[ev.buf].formatexpr = ''
+    vim.bo[ev.buf].formatprg = 'jq'
+  end,
+})
+
 -- [[ Install `lazy.nvim` plugin manager ]]
 --    See `:help lazy.nvim.txt` or https://github.com/folke/lazy.nvim for more info
 local lazypath = vim.fn.stdpath 'data' .. '/lazy/lazy.nvim'
@@ -224,6 +233,17 @@ require('lazy').setup {
 
       vim.keymap.set('n', '<leader>-', require('oil').toggle_float)
     end,
+  },
+
+  {
+    'rest-nvim/rest.nvim',
+    dependencies = {
+      'nvim-treesitter/nvim-treesitter',
+      opts = function(_, opts)
+        opts.ensure_installed = opts.ensure_installed or {}
+        table.insert(opts.ensure_installed, 'http')
+      end,
+    },
   },
 
   {
@@ -610,6 +630,14 @@ require('lazy').setup {
             end
           end,
         },
+        biome = {
+          root_dir = function(bufnr, done)
+            local biomejson = vim.fs.root(bufnr, { 'biome.json' })
+            if biomejson then
+              return done(biomejson)
+            end
+          end,
+        },
         basedpyright = {
           settings = {
             basedpyright = {
@@ -683,10 +711,15 @@ require('lazy').setup {
   { -- Autoformat
     'stevearc/conform.nvim',
     config = function()
+      local is_formatter_available = function(name, bufnr)
+        return require('conform').get_formatter_info(name, bufnr).available
+      end
+
       local js_formatter = function(bufnr)
-        if require('conform').get_formatter_info('biome', bufnr).available then
-          return { 'biome', 'biome-organize-imports' }
-        elseif require('conform').get_formatter_info('prettier', bufnr).available then
+        if is_formatter_available('biome', bufnr) and vim.fs.root(bufnr, { 'biome.json' }) then
+          return { 'biome' }
+          -- return { 'biome', 'biome-organize-imports' }
+        elseif is_formatter_available('prettier', bufnr) or is_formatter_available('prettierd', bufnr) then
           return { 'prettierd', 'prettier', stop_after_first = true }
         else
           return { lsp_format = 'fallback' }
@@ -940,7 +973,7 @@ require('lazy').setup {
 
       ---@diagnostic disable-next-line: missing-fields
       require('nvim-treesitter.configs').setup {
-        ensure_installed = { 'bash', 'c', 'html', 'lua', 'markdown', 'vim', 'vimdoc' },
+        ensure_installed = { 'bash', 'c', 'html', 'lua', 'markdown', 'vim', 'vimdoc', 'http' },
         -- Autoinstall languages that are not installed
         auto_install = true,
         highlight = { enable = true },
