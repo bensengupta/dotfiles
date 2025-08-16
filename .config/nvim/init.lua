@@ -660,7 +660,7 @@ require('lazy').setup {
         --   },
         -- },
         eslint = {},
-        gopls = {},
+        -- gopls = {},
         templ = {},
         html = {},
         jdtls = {},

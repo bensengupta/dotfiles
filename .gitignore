@@ -1,1 +1,3 @@
 .stow-local-ignore
+.config/zsh
+!.config/zsh/.zshrc

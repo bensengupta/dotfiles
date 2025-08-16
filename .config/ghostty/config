@@ -1,5 +1,5 @@
-# theme = tokyonight
-theme = iTerm2 Default
+theme = tokyonight
+# theme = iTerm2 Default
 font-size = 16
 bold-is-bright = true
 
