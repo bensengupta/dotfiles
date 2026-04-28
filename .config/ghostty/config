@@ -2,8 +2,8 @@ theme = tokyonight
 # theme = iTerm2 Default
 font-size = 16
 bold-is-bright = true
+confirm-close-surface = false
 
 # only supported on macOS
 font-thicken = true
 font-thicken-strength = 191
-

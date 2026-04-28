@@ -87,8 +87,18 @@ vim.filetype.add {
     templ = 'templ',
     mdx = 'mdx',
     avsc = 'json',
+
+    flex = 'jflex', -- compilers course
+    cup = 'cup', -- compilers course
   },
 }
+
+-- Automatically reload files changed outside of Neovim
+vim.opt.autoread = true
+vim.api.nvim_create_autocmd({ 'FocusGained', 'BufEnter', 'CursorHold', 'CursorHoldI' }, {
+  command = "if mode() != 'c' | checktime | endif",
+  pattern = '*',
+})
 
 -- Preview substitutions live, as you type!
 vim.opt.inccommand = 'split'
@@ -116,6 +126,8 @@ vim.keymap.set('x', '<leader>p', '"_dP', { desc = '[P]aste but dont yank' })
 vim.keymap.set('n', '<leader>y', '"+y', { desc = '[Y]ank to clipboard' })
 vim.keymap.set('v', '<leader>y', '"+y', { desc = '[Y]ank to clipboard' })
 vim.keymap.set('n', '<leader>Y', '"+Y', { desc = '[Y]ank to clipboard' })
+
+vim.keymap.set('n', '<leader>w', ':write<CR>', { desc = '[W]rite file' })
 
 vim.keymap.set('n', 'Q', '<nop>', { desc = 'Disable Ex mode' })
 vim.keymap.set('n', '<C-f>', '<cmd>silent !tmux neww tmux-sessionizer<CR>', { desc = 'Open project finder' })
@@ -165,6 +177,46 @@ vim.api.nvim_create_autocmd('FileType', {
   end,
 })
 
+-- Deno virtual text document support
+local function virtual_text_document(params)
+  local bufnr = params.buf
+  local actual_path = params.match:sub(1)
+
+  local clients = vim.lsp.get_clients { name = 'denols' }
+  if #clients == 0 then
+    vim.notify('cannot find denols', vim.log.levels.WARN)
+    return
+  end
+
+  local client = clients[1]
+  local method = 'deno/virtualTextDocument'
+  local req_params = { textDocument = { uri = actual_path } }
+  local response = client:request_sync(method, req_params, 2000, 0)
+  if not response or type(response.result) ~= 'string' then
+    vim.notify("failed to get virtual document's content", vim.log.levels.WARN)
+    return
+  end
+
+  local lines = vim.split(response.result, '\n')
+  vim.api.nvim_buf_set_lines(bufnr, 0, -1, false, lines)
+  vim.api.nvim_set_option_value('readonly', true, { buf = bufnr })
+  vim.api.nvim_set_option_value('modified', false, { buf = bufnr })
+  vim.api.nvim_set_option_value('modifiable', false, { buf = bufnr })
+  vim.api.nvim_buf_set_name(bufnr, actual_path)
+  vim.lsp.buf_attach_client(bufnr, client.id)
+
+  local filetype = 'typescript'
+  if actual_path:sub(-3) == '.md' then
+    filetype = 'markdown'
+  end
+  vim.api.nvim_set_option_value('filetype', filetype, { buf = bufnr })
+end
+
+vim.api.nvim_create_autocmd({ 'BufReadCmd' }, {
+  pattern = { 'deno:/*', 'asset://*' },
+  callback = virtual_text_document,
+})
+
 -- [[ Install `lazy.nvim` plugin manager ]]
 --    See `:help lazy.nvim.txt` or https://github.com/folke/lazy.nvim for more info
 local lazypath = vim.fn.stdpath 'data' .. '/lazy/lazy.nvim'
@@ -208,6 +260,24 @@ require('lazy').setup {
   'tpope/vim-abolish',
 
   {
+    'kristijanhusak/vim-dadbod-ui',
+    dependencies = {
+      { 'tpope/vim-dadbod', lazy = true },
+      { 'kristijanhusak/vim-dadbod-completion', ft = { 'sql', 'mysql', 'plsql' }, lazy = true }, -- Optional
+    },
+    cmd = {
+      'DBUI',
+      'DBUIToggle',
+      'DBUIAddConnection',
+      'DBUIFindBuffer',
+    },
+    init = function()
+      -- Your DBUI configuration
+      vim.g.db_ui_use_nerd_fonts = 1
+    end,
+  },
+
+  {
     'tpope/vim-fugitive',
     config = function()
       vim.keymap.set('n', '<leader>gs', '<cmd>Git<CR>', { desc = 'Open [G]it [S]tatus' })
@@ -225,7 +295,10 @@ require('lazy').setup {
           ['<M-h>'] = 'actions.select_split',
         },
         view_options = {
-          show_hidden = true,
+          -- show_hidden = true,
+          is_hidden_file = function(name, _)
+            return vim.endswith(name, '.class')
+          end,
         },
       }
 
@@ -503,9 +576,13 @@ require('lazy').setup {
   },
 
   -- {
-  --   'pmizio/typescript-tools.nvim',
-  --   dependencies = { 'nvim-lua/plenary.nvim', 'neovim/nvim-lspconfig' },
-  --   opts = {},
+  --   'nvim-flutter/flutter-tools.nvim',
+  --   lazy = false,
+  --   dependencies = {
+  --     'nvim-lua/plenary.nvim',
+  --     'stevearc/dressing.nvim', -- optional for vim.ui.select
+  --   },
+  --   config = true,
   -- },
 
   {
@@ -621,7 +698,23 @@ require('lazy').setup {
           filetypes = { 'c', 'cpp', 'objc', 'objcpp', 'cuda' }, -- excluded "proto"
         },
         rust_analyzer = {},
-        ts_ls = {},
+        ts_ls = {
+          root_dir = function(bufnr, on_dir)
+            -- exclude deno
+            local deno_path = vim.fs.root(bufnr, { 'deno.json', 'deno.jsonc', 'deno.lock' })
+            if deno_path then
+              return
+            end
+
+            local project_root = vim.fs.root(bufnr, { 'package-lock.json', 'yarn.lock', 'pnpm-lock.yaml', 'bun.lockb', 'bun.lock' })
+            if not project_root then
+              return
+            end
+
+            on_dir(project_root)
+          end,
+          workspace_required = true,
+        },
         denols = {
           root_dir = function(bufnr, done)
             local denojson = vim.fs.root(bufnr, { 'deno.json', 'deno.jsonc' })
@@ -731,12 +824,15 @@ require('lazy').setup {
         format_on_save = { timeout_ms = 1000 },
         formatters_by_ft = {
           c = { lsp_format = 'fallback' },
+          cpp = { lsp_format = 'fallback' },
           lua = { 'stylua', lsp_format = 'fallback' },
           python = { 'isort', 'black', lsp_format = 'fallback' },
-          java = { 'google-java-format', lsp_format = 'fallback' },
+          java = { lsp_format = 'fallback' },
           typst = { 'typstyle', lsp_format = 'fallback' },
           go = { lsp_format = 'fallback' },
           rust = { lsp_format = 'fallback' },
+          zig = { lsp_format = 'fallback' },
+          dart = { lsp_format = 'fallback' },
 
           css = js_formatter,
           html = { 'prettierd', 'prettier', stop_after_first = true, lsp_format = 'fallback' },
@@ -757,6 +853,7 @@ require('lazy').setup {
   {
     'zbirenbaum/copilot.lua',
     dependencies = {
+      'copilotlsp-nvim/copilot-lsp',
       'hrsh7th/nvim-cmp',
     },
     cmd = 'Copilot',
@@ -764,6 +861,21 @@ require('lazy').setup {
     event = 'InsertEnter',
     config = function()
       require('copilot').setup {
+        filetypes = {
+          [''] = false, -- no copilot on new buffers
+          sh = function()
+            local basename = vim.fs.basename(vim.api.nvim_buf_get_name(0))
+            if string.match(basename, '^%.env.*') then
+              -- disable for .env files
+              return false
+            end
+            if string.match(basename, '.*%.tfvars$') then
+              -- disable for .tfvars files
+              return false
+            end
+            return true
+          end,
+        },
         panel = {
           enabled = true,
           auto_refresh = true,
@@ -785,15 +897,6 @@ require('lazy').setup {
       -- Snippet Engine & its associated nvim-cmp source
       {
         'L3MON4D3/LuaSnip',
-        build = (function()
-          -- Build Step is needed for regex support in snippets
-          -- This step is not supported in many windows environments
-          -- Remove the below condition to re-enable on windows
-          if vim.fn.has 'win32' == 1 or vim.fn.executable 'make' == 0 then
-            return
-          end
-          return 'make install_jsregexp'
-        end)(),
         dependencies = {
           {
             'rafamadriz/friendly-snippets',
