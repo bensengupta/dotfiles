@@ -24,7 +24,6 @@ alias gd="git diff"
 alias hs='history | grep'
 alias hsi='history | grep -i'
 
-alias linux="ssh -i ~/.ssh/id_bensengupta bsengupt@linux.socs.uoguelph.ca"
 alias va="source .venv/bin/activate"
 
 # ------------------------ keybinds -----------------------
