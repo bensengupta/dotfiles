@@ -38,6 +38,10 @@ vim.opt.undofile = true
 vim.g.mapleader = ' '
 vim.g.maplocalleader = ' '
 
+-- vim-dadbod-ui disable views for postgres
+-- (required for redshift)
+vim.g.db_ui_use_postgres_views = 0
+
 -- Line numbers
 vim.opt.number = true
 vim.opt.relativenumber = true
@@ -395,7 +399,7 @@ require('lazy').setup {
       view_options = {
         -- show_hidden = true,
         is_hidden_file = function(name, _)
-          return vim.endswith(name, '.class')
+          return vim.endswith(name, '.class') or name == '__pycache__'
         end,
       },
     },
@@ -431,17 +435,17 @@ require('lazy').setup {
         harpoon.ui:toggle_quick_menu(harpoon:list())
       end, { desc = 'Toggle [H]arpoon [L]ist' })
 
-      vim.keymap.set('n', '<C-s>', function()
+      vim.keymap.set('n', '<C-h>', function()
         harpoon:list():select(1)
       end, { desc = 'Harpoon Mark [1]' })
-      vim.keymap.set('n', '<C-t>', function()
+      vim.keymap.set('n', '<C-j>', function()
         harpoon:list():select(2)
       end, { desc = 'Harpoon Mark [2]' })
-      vim.keymap.set('n', '<C-n>', function()
+      vim.keymap.set('n', '<C-k>', function()
         harpoon:list():select(3)
       end, { desc = 'Harpoon Mark [3]' })
       -- semicolon doesn't work :(
-      vim.keymap.set('n', '<C-e>', function()
+      vim.keymap.set('n', '<C-l>', function()
         harpoon:list():select(4)
       end, { desc = 'Harpoon Mark [4]' })
     end,
@@ -459,6 +463,10 @@ require('lazy').setup {
         cond = function()
           return vim.fn.executable 'make' == 1
         end,
+      },
+      {
+        'nvim-telescope/telescope-live-grep-args.nvim',
+        version = '^1.0.0',
       },
       { 'nvim-telescope/telescope-ui-select.nvim' },
       { 'nvim-tree/nvim-web-devicons' },
@@ -494,9 +502,11 @@ require('lazy').setup {
       -- Enable telescope extensions, if they are installed
       pcall(require('telescope').load_extension, 'fzf')
       pcall(require('telescope').load_extension, 'ui-select')
+      pcall(require('telescope').load_extension, 'live_grep_args')
 
       -- See `:help telescope.builtin`
       local builtin = require 'telescope.builtin'
+      local extensions = require('telescope').extensions
 
       local builtin = require 'telescope.builtin'
       vim.keymap.set('n', '<leader>sh', builtin.help_tags, { desc = '[S]earch [H]elp' })
@@ -514,6 +524,9 @@ require('lazy').setup {
       vim.keymap.set('n', '<leader>sg', function()
         builtin.live_grep { disable_coordinates = true }
       end, { desc = '[S]earch by [G]rep' })
+      vim.keymap.set('n', '<leader>sa', function()
+        extensions.live_grep_args.live_grep_args()
+      end, { desc = '[S]earch by [A]rgs' })
 
       -- Slightly advanced example of overriding default behavior and theme
       vim.keymap.set('n', '<leader>/', function()
@@ -666,7 +679,17 @@ require('lazy').setup {
           filetypes = { 'c', 'cpp', 'objc', 'objcpp', 'cuda' }, -- excluded "proto"
         },
         rust_analyzer = {},
+        ruby_lsp = {
+          cmd = { 'bundle', 'exec', 'ruby-lsp' },
+          cmd_env = {
+            BUNDLE_GEMFILE = '.ruby-lsp/Gemfile',
+          },
+          root_markers = { '.git' },
+        },
         ts_ls = {
+          init_options = {
+            maxTsServerMemory = 8192, -- Sets the limit to 8GB (default is usually 3072MB)
+          },
           root_dir = function(bufnr, on_dir)
             -- exclude deno
             local deno_path = vim.fs.root(bufnr, { 'deno.json', 'deno.jsonc', 'deno.lock' })
@@ -683,6 +706,7 @@ require('lazy').setup {
           end,
           workspace_required = true,
         },
+        graphql = {},
         denols = {
           root_dir = function(bufnr, done)
             local denojson = vim.fs.root(bufnr, { 'deno.json', 'deno.jsonc' })
@@ -790,6 +814,15 @@ require('lazy').setup {
         end
       end
 
+      local python_formatter = function(bufnr)
+        local project_name = vim.fs.basename(vim.fs.root(bufnr, { 'pyproject.toml' }))
+        if project_name and project_name:match '^embedded%-payroll' then
+          return { 'black' }
+        else
+          return { 'isort', 'black', stop_after_first = false }
+        end
+      end
+
       require('conform').setup {
         notify_on_error = false,
         format_on_save = function(bufnr)
@@ -801,7 +834,7 @@ require('lazy').setup {
             return nil
           end
 
-          return { timeout_ms = 1000 }
+          return { timeout_ms = 5000 }
         end,
         default_format_opts = {
           lsp_format = 'fallback',
@@ -809,7 +842,7 @@ require('lazy').setup {
         },
         formatters_by_ft = {
           lua = { 'stylua' },
-          python = { 'isort', 'black', stop_after_first = true },
+          python = python_formatter,
           typst = { 'typstyle' },
           css = js_formatter,
           html = { 'prettierd', 'prettier' },
@@ -867,6 +900,9 @@ require('lazy').setup {
         graphql = true,
         jsonc = true,
         terraform = true,
+        sql = true,
+        ruby = true,
+        proto = true,
       },
       panel = {
         enabled = true,

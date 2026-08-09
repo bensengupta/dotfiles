@@ -19,7 +19,7 @@ Install
 
 ```bash
 mkdir -p ~/.config
-mkdir -p ~/.local
+mkdir -p ~/.local/bin
 stow . -t $HOME
 ```
 

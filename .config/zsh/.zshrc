@@ -1,6 +1,4 @@
 # ------------------------- env vars ----------------------
-export PATH="$HOME/.local/bin:$PATH"
-
 export EDITOR="nvim"
 
 export HISTSIZE=10000
@@ -25,6 +23,9 @@ alias hs='history | grep'
 alias hsi='history | grep -i'
 
 alias va="source .venv/bin/activate"
+copilot() {
+  command copilot --yolo "$@"
+}
 
 # ------------------------ keybinds -----------------------
 bindkey -e # zsh: don't use vi mode
