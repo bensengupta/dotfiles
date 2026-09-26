@@ -673,11 +673,26 @@ require('lazy').setup {
         end,
       })
 
+      local function is_ts7_project(root_dir)
+        local package_json_path = vim.fs.joinpath(root_dir, 'package.json')
+        local file = io.open(package_json_path, 'r')
+        if not file then
+          return false
+        end
+
+        local content = file:read '*a'
+        file:close()
+
+        -- Look for "typescript": "^7..." or "typescript": "7..." in dependencies
+        return content:match '"typescript"%s*:%s*"[^%d]*7%.' ~= nil
+      end
+
       ---@type table<string, vim.lsp.Config>
       local servers = {
         clangd = {
           filetypes = { 'c', 'cpp', 'objc', 'objcpp', 'cuda' }, -- excluded "proto"
         },
+        buf_ls = {}, -- protobuf
         rust_analyzer = {},
         ruby_lsp = {
           cmd = { 'bundle', 'exec', 'ruby-lsp' },
@@ -702,11 +717,16 @@ require('lazy').setup {
               return
             end
 
+            if is_ts7_project(project_root) then
+              return
+            end
+
             on_dir(project_root)
           end,
           workspace_required = true,
         },
         graphql = {},
+        tsc = {},
         denols = {
           root_dir = function(bufnr, done)
             local denojson = vim.fs.root(bufnr, { 'deno.json', 'deno.jsonc' })
@@ -733,8 +753,9 @@ require('lazy').setup {
           },
         },
         eslint = {},
-        templ = {},
+        oxlint = {},
         html = {},
+        jsonls = {},
         jdtls = {},
 
         stylua = {}, -- lua formatter
@@ -804,14 +825,20 @@ require('lazy').setup {
       end
 
       local js_formatter = function(bufnr)
+        if is_formatter_available('oxfmt', bufnr) then
+          return { 'oxfmt' }
+        end
+
         if is_formatter_available('biome', bufnr) and vim.fs.root(bufnr, { 'biome.json' }) then
           return { 'biome' }
           -- return { 'biome', 'biome-organize-imports' }
-        elseif is_formatter_available('prettier', bufnr) or is_formatter_available('prettierd', bufnr) then
-          return { 'prettierd', 'prettier', stop_after_first = true }
-        else
-          return { lsp_format = 'fallback' }
         end
+
+        if is_formatter_available('prettier', bufnr) or is_formatter_available('prettierd', bufnr) then
+          return { 'prettierd', 'prettier', stop_after_first = true }
+        end
+
+        return { lsp_format = 'fallback' }
       end
 
       local python_formatter = function(bufnr)
